@@ -1,6 +1,6 @@
 from http.server import BaseHTTPRequestHandler
 import urllib.request
-import urllib.error  # <-- Добавили для перехвата точных HTTP-ошибок
+import urllib.error
 import json
 import os
 
@@ -9,20 +9,23 @@ class handler(BaseHTTPRequestHandler):
         content_length = int(self.headers.get('Content-Length', 0))
         post_data = self.rfile.read(content_length)
         
-        # Проверяем наличие ключа
-        api_key = os.environ.get("GROQ_API_KEY")
+        # Берем ключ OpenRouter (мы добавим его в Vercel на следующем шаге)
+        api_key = os.environ.get("OPENROUTER_API_KEY")
         
         if not api_key:
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
-            err = {"choices": [{"message": {"content": "❌ Ошибка: GROQ_API_KEY не найден в настройках Vercel!"}}]}
+            err = {"choices": [{"message": {"content": "❌ Ошибка: OPENROUTER_API_KEY не найден в Vercel!"}}]}
             self.wfile.write(json.dumps(err).encode('utf-8'))
             return
 
-        url = "https://api.groq.com/openai/v1/chat/completions"
+        # Перенаправляем запрос не в Groq, а в OpenRouter!
+        url = "https://openrouter.ai/api/v1/chat/completions"
         headers = {
             "Authorization": f"Bearer {api_key}",
+            "HTTP-Referer": "https://t.me/my_bot",
+            "X-Title": "Max2GisBot",
             "Content-Type": "application/json"
         }
         
@@ -35,26 +38,12 @@ class handler(BaseHTTPRequestHandler):
                 self.wfile.write(response.read())
                 
         except urllib.error.HTTPError as e:
-            # Сюда мы падаем, если Groq отвечает 403, 400 и т.д.
-            self.send_response(200)  # Отдаем боту 200, чтобы он не сломался, а прочитал текст ошибки
-            self.send_header('Content-type', 'application/json')
-            self.end_headers()
-            
-            try:
-                # Пытаемся прочитать точный ответ (JSON) от серверов Groq
-                error_body = e.read().decode('utf-8')
-                error_text = f"❌ Точная ошибка Groq (HTTP {e.code}):\n{error_body}"
-            except Exception as read_e:
-                error_text = f"❌ Ошибка Groq (HTTP {e.code}), не удалось прочитать тело ответа: {str(read_e)}"
-                
-            error_msg = {"choices": [{"message": {"content": error_text}}]}
-            self.wfile.write(json.dumps(error_msg).encode('utf-8'))
-            
-        except Exception as e:
-            # Это на случай других ошибок (например, таймаут сети)
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
-            error_text = f"❌ Системная ошибка прокси: {str(e)}"
-            error_msg = {"choices": [{"message": {"content": error_text}}]}
-            self.wfile.write(json.dumps(error_msg).encode('utf-8'))
+            try:
+                error_body = e.read().decode('utf-8')
+                error_text = f"❌ Ошибка OpenRouter (HTTP {e.code}):\n{error_body}"
+            except:
+                error_text = f"❌ Ошибка OpenRouter (HTTP {e.code})"
+            self.wfile.write(json.dumps({"choices": [{"message": {"content": error_text}}]}).encode('utf-8'))
