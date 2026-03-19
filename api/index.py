@@ -9,7 +9,7 @@ class handler(BaseHTTPRequestHandler):
         content_length = int(self.headers.get('Content-Length', 0))
         post_data = self.rfile.read(content_length)
         
-        # Берем ключ Cerebras из переменных окружения Vercel
+        # Берем ключ Cerebras из Vercel
         api_key = os.environ.get("CEREBRAS_API_KEY")
         
         if not api_key:
@@ -20,11 +20,14 @@ class handler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(err).encode('utf-8'))
             return
 
-        # Перенаправляем запрос в сверхбыстрый API Cerebras!
         url = "https://api.cerebras.ai/v1/chat/completions"
+        
+        # 💥 МАГИЯ ЗДЕСЬ: Прикидываемся настоящим браузером Chrome, чтобы обойти ошибку 1010
         headers = {
             "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "application/json"
         }
         
         try:
