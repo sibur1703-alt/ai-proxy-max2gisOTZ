@@ -9,23 +9,21 @@ class handler(BaseHTTPRequestHandler):
         content_length = int(self.headers.get('Content-Length', 0))
         post_data = self.rfile.read(content_length)
         
-        # Берем ключ OpenRouter (мы добавим его в Vercel на следующем шаге)
-        api_key = os.environ.get("OPENROUTER_API_KEY")
+        # Берем ключ Cerebras из переменных окружения Vercel
+        api_key = os.environ.get("CEREBRAS_API_KEY")
         
         if not api_key:
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
-            err = {"choices": [{"message": {"content": "❌ Ошибка: OPENROUTER_API_KEY не найден в Vercel!"}}]}
+            err = {"choices": [{"message": {"content": "❌ Ошибка: CEREBRAS_API_KEY не найден в Vercel!"}}]}
             self.wfile.write(json.dumps(err).encode('utf-8'))
             return
 
-        # Перенаправляем запрос не в Groq, а в OpenRouter!
-        url = "https://openrouter.ai/api/v1/chat/completions"
+        # Перенаправляем запрос в сверхбыстрый API Cerebras!
+        url = "https://api.cerebras.ai/v1/chat/completions"
         headers = {
             "Authorization": f"Bearer {api_key}",
-            "HTTP-Referer": "https://t.me/my_bot",
-            "X-Title": "Max2GisBot",
             "Content-Type": "application/json"
         }
         
@@ -43,7 +41,7 @@ class handler(BaseHTTPRequestHandler):
             self.end_headers()
             try:
                 error_body = e.read().decode('utf-8')
-                error_text = f"❌ Ошибка OpenRouter (HTTP {e.code}):\n{error_body}"
+                error_text = f"❌ Ошибка Cerebras (HTTP {e.code}):\n{error_body}"
             except:
-                error_text = f"❌ Ошибка OpenRouter (HTTP {e.code})"
+                error_text = f"❌ Ошибка Cerebras (HTTP {e.code})"
             self.wfile.write(json.dumps({"choices": [{"message": {"content": error_text}}]}).encode('utf-8'))
